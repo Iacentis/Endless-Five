@@ -1,0 +1,81 @@
+﻿@page "/listings"
+@attribute [StreamRendering]
+@inject ILogger<Listings> Logger
+
+<PageTitle>Game Listings</PageTitle>
+
+<h1>Game Listings</h1>
+
+<p>TODO: Find the listed games here</p>
+
+@if (games == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Game Name</th>
+                <th>ID</th>
+                <th>Players</th>
+                <th>Last Played</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var game in games)
+            {
+                <tr>
+                    <td>@game.Name</td>
+                    <td>@game.ID</td>
+                    <td>@game.Players</td>
+                    <td>@game.LastPlayed.ToShortDateString()</td>
+                    <td>
+                        <button @onclick="@(() => JoinGame(game))" class="btn btn-primary">
+                            Join
+                        </button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+@functions
+{
+
+    public void JoinGame(GameListing gameID)
+    {
+        Logger.LogError($"Attempting to join {gameID.Name}");
+        gameID.Players++;
+        Logger.LogError($"Game player count is is {gameID.Players}");
+    }
+
+}
+
+@code {
+    public GameListing[]? games;
+    protected override async Task OnInitializedAsync()
+    {
+        await Task.Delay(50); //Simulated load time
+        var startDate = DateOnly.FromDateTime(DateTime.Now);
+        var placeholders = Enumerable.Range(1, 20);
+
+        games = placeholders.Select(index => new GameListing
+            {
+                LastPlayed = startDate.AddDays(index),
+                ID = Guid.NewGuid(),
+                Name = $"PlaceholderGame{index}",
+                Players = 0,
+            }).ToArray();
+    }
+
+    public class GameListing
+    {
+        public DateOnly LastPlayed { get; set; }
+        public Guid ID { get; set; }
+        public string? Name { get; set; }
+        public int Players { get; set; }
+    }
+}
