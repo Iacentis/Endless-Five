@@ -1,3 +1,4 @@
+using Server;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -18,11 +19,12 @@ playerApi.MapGet("/{id}", (Guid id) =>
     players.FirstOrDefault(a => a.ID == id) is { } player
         ? Results.Ok(player)
         : Results.NotFound());
-playerApi.MapPost("/register/{name}", (string name) => players.Add(new Player
+playerApi.MapPost("/register/{name}", (string name) =>
 {
-    ID = Guid.NewGuid(),
-    Name = name,
-}));
+    var player = new Player(Guid.NewGuid(), name);
+    players.Add(player);
+    return Results.Ok(player);
+});
 playerApi.MapDelete("/{id}", (Guid id) =>
 {
     var player = players.FirstOrDefault(p => p.ID == id);
@@ -31,6 +33,10 @@ playerApi.MapDelete("/{id}", (Guid id) =>
         return Results.NotFound();
     }
     players.Remove(player);
+    foreach (var game in games)
+    {
+        game.Players.Remove(player);
+    }
     return Results.Ok(player);
 });
 
@@ -42,7 +48,22 @@ gamesApi.MapGet("/{id}", (Guid id) =>
     games.FirstOrDefault(a => a.ID == id) is { } game
         ? Results.Ok(game)
         : Results.NotFound());
-gamesApi.MapPost("/create/{name}", (string name) => games.Add(new Game(name)));
+gamesApi.MapPost("/create/{name}", (string name) =>
+{
+    var game = new Game(name);
+    games.Add(game);
+    return Results.Ok(game);
+});
+gamesApi.MapDelete("/delete/{id}", (Guid id) =>
+{
+    var game = games.FirstOrDefault(g => g.ID.Equals(id));
+    if (game is null)
+    {
+        return Results.NotFound();
+    }
+    games.Remove(game);
+    return Results.Ok(game);
+});
 gamesApi.MapDelete("/{id}", (Guid id) =>
 {
     var game = games.FirstOrDefault(p => p.ID == id);
@@ -55,7 +76,7 @@ gamesApi.MapDelete("/{id}", (Guid id) =>
 });
 gamesApi.MapPost("/join/{gameId}/{playerId}", (Guid gameId, Guid playerId) =>
 {
-    
+
     var game = games.FirstOrDefault(p => p.ID == gameId);
     if (game is null)
     {
@@ -69,9 +90,9 @@ gamesApi.MapPost("/join/{gameId}/{playerId}", (Guid gameId, Guid playerId) =>
     game.Players.Add(player);
     return Results.Ok(player);
 });
-gamesApi.MapPost("/leave/{id}/{playerid}", (Guid gameId, Guid playerId) =>
+gamesApi.MapPost("/leave/{gameId}/{playerId}", (Guid gameId, Guid playerId) =>
 {
-    
+
     var game = games.FirstOrDefault(p => p.ID == gameId);
     if (game is null)
     {
@@ -90,30 +111,11 @@ gamesApi.MapPost("/leave/{id}/{playerid}", (Guid gameId, Guid playerId) =>
 app.Run();
 
 [JsonSerializable(typeof(List<Game>))]
+[JsonSerializable(typeof(HashSet<Player>))]
 [JsonSerializable(typeof(List<Player>))]
 [JsonSerializable(typeof(Player))]
 [JsonSerializable(typeof(Game))]
 internal partial class AppJsonSerializerContext : JsonSerializerContext
 {
 
-}
-
-public class Game
-{
-    private static int Count = 0;
-    public Game(string? name)
-    {
-        Count++;
-        ID = Guid.NewGuid();
-        Players = [];
-        Name = name ?? $"Game{Count}";
-    }
-    public Guid ID { get; }
-    public string Name { get; }
-    public List<Player> Players { get; }
-}
-public class Player
-{
-    public Guid ID { get; init; }
-    public required string Name { get; init; }
 }

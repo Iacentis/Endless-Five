@@ -1,6 +1,9 @@
 ﻿@page "/listings"
+@using Microsoft.Net.Http.Headers
 @attribute [StreamRendering]
 @inject ILogger<Listings> Logger
+@inject IConfiguration Configuration
+@inject IHttpClientFactory _httpClientFactory
 
 <PageTitle>Game Listings</PageTitle>
 
@@ -30,52 +33,234 @@ else
                 <tr>
                     <td>@game.Name</td>
                     <td>@game.ID</td>
-                    <td>@game.Players</td>
+                    <td>@game.Players.Count</td>
                     <td>@game.LastPlayed.ToShortDateString()</td>
                     <td>
                         <button @onclick="@(() => JoinGame(game))" class="btn btn-primary">
                             Join
                         </button>
                     </td>
+                    <td>
+                        <button @onclick="@(() => LeaveGame(game))" class="btn btn-primary">
+                            Leave
+                        </button>
+                    </td>
+                    <td>
+                        <button @onclick="@(() => DeleteGame(game))" class="btn btn-primary">
+                            Delete
+                        </button>
+                    </td>
                 </tr>
             }
         </tbody>
     </table>
+    <EditForm Model="GameName">
+        Game Name
+        <InputText @ref="inputText" class="form-control" @bind-Value="GameName" />
+    </EditForm>
+    <button @onclick="@(() => CreateGame())" class="btn btn-primary">
+        Create
+    </button>
 }
 @functions
 {
-
-    public void JoinGame(GameListing gameID)
+    public async Task<Game?> CreateGame()
     {
-        Logger.LogError($"Attempting to join {gameID.Name}");
-        gameID.Players++;
-        Logger.LogError($"Game player count is is {gameID.Players}");
+        if (string.IsNullOrEmpty(GameName)) return null;
+        var getPlayersPath = serverAddress + $"/games/create/{GameName}";
+        var cts = new CancellationTokenSource(500);
+        var response = await client.PostAsync(getPlayersPath, null, cts.Token);
+        if (response.IsSuccessStatusCode)
+        {
+            var game = await response.Content.ReadFromJsonAsync<Game>();
+            await RefreshGames(cts.Token);
+            return game;
+        }
+        else
+        {
+            Logger.LogError("Failed to create {gameName}", GameName);
+            return null;
+        }
+    }
+    public async Task<bool> GetPlayers(CancellationToken cancellationToken)
+    {
+        var getPlayersPath = serverAddress + "/player";
+        var response = await client.GetAsync(getPlayersPath, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            players = await response.Content.ReadFromJsonAsync<Player[]>();
+        }
+        else
+        {
+            Logger.LogError("Failed to retrieve player list from {0}", getPlayersPath);
+            return false;
+        }
+        return true;
+    }
+    public async Task<Player?> RegisterPlayer(string name, CancellationToken cancellationToken)
+    {
+        var registerPath = serverAddress + $"/player/register/{name}";
+        var response = await client.PostAsync(registerPath, null, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            return await response.Content.ReadFromJsonAsync<Player>();
+        }
+        else
+        {
+            Logger.LogError("Failed to register player {0}", name);
+            return null;
+        }
+    }
+    public async Task JoinGame(Game game)
+    {
+        var cts = new CancellationTokenSource(500);
+        me ??= await RegisterPlayer(Environment.UserName, cts.Token);
+        if (me is null)
+        {
+            Logger.LogError("Failed to get player {0}", Environment.UserName);
+            return;
+        }
+        var joinPath = serverAddress + $"/games/join/{game.ID}/{me.ID}";
+        var joinResponse = await client.PostAsync(joinPath, null);
+        if (!joinResponse.IsSuccessStatusCode)
+        {
+            Logger.LogError("Failed to join game {gameName} as player {playerName}", game.Name, Environment.UserName);
+            return;
+        }
+        await RefreshGames(cts.Token);
+
+    }
+    public async Task LeaveGame(Game game)
+    {
+        var cts = new CancellationTokenSource(500);
+        if (me is null)
+        {
+            Logger.LogError("No player {0} exists, can't leave a game", Environment.UserName);
+            return;
+        }
+        var joinPath = serverAddress + $"/games/leave/{game.ID}/{me.ID}";
+        var joinResponse = await client.PostAsync(joinPath, null, cts.Token);
+        if (!joinResponse.IsSuccessStatusCode)
+        {
+            Logger.LogError("Failed to join game {gameName} as player {playerName}", game.Name, Environment.UserName);
+            return;
+        }
+        await RefreshGames(cts.Token);
+
+    }
+    public async Task DeleteGame(Game game)
+    {
+        var cts = new CancellationTokenSource(500);
+        if (me is null)
+        {
+            Logger.LogError("No player {0} exists, can't leave a game", Environment.UserName);
+            return;
+        }
+        var deletePath = serverAddress + $"/games/delete/{game.ID}";
+        var joinResponse = await client.DeleteAsync(deletePath, cts.Token);
+        if (!joinResponse.IsSuccessStatusCode)
+        {
+            Logger.LogError("Failed to delete {gameName}", game.Name, Environment.UserName);
+            return;
+        }
+        await RefreshGames(cts.Token);
+
+    }
+    public async Task<bool> RefreshGames(CancellationToken cancellationToken)
+    {
+        var path = serverAddress + "/games";
+        var response = await client.GetAsync(path, cancellationToken);
+        if (response.IsSuccessStatusCode)
+        {
+            games = await response.Content.ReadFromJsonAsync<Game[]>();
+            return true;
+        }
+        else
+        {
+            Logger.LogError("Failed to get game list from {0}", path);
+            return false;
+        }
     }
 
 }
 
 @code {
-    public GameListing[]? games;
+    string GameName = string.Empty;
+    string serverAddress;
+    public Player? me;
+    public Game[]? games;
+    public Player[]? players;
+    HttpClient client;
     protected override async Task OnInitializedAsync()
     {
-        await Task.Delay(50); //Simulated load time
+        serverAddress = Configuration["ServerAddress"]!;
+        client = _httpClientFactory.CreateClient();
+        var cts = new CancellationTokenSource(500);
+        try
+        {
+
+            if (!await RefreshGames(cts.Token))
+            {
+                MakePlaceholders();
+            }
+        }
+        catch (Exception e)
+        {
+            Logger.LogError("Exception in games-get {message}", e.Message);
+            MakePlaceholders();
+        }
+        try
+        {
+            await GetPlayers(cts.Token);
+            me = players!.FirstOrDefault(p => p.Name == Environment.UserName);
+        }
+        catch (Exception e)
+        {
+            Logger.LogError("Exception in players-get {message}", e.Message);
+        }
+    }
+    protected void MakePlaceholders()
+    {
         var startDate = DateOnly.FromDateTime(DateTime.Now);
         var placeholders = Enumerable.Range(1, 20);
 
-        games = placeholders.Select(index => new GameListing
+        games = placeholders.Select(index => new Game
             {
                 LastPlayed = startDate.AddDays(index),
                 ID = Guid.NewGuid(),
                 Name = $"PlaceholderGame{index}",
-                Players = 0,
+                Players = [],
             }).ToArray();
     }
 
-    public class GameListing
+    public class Game
     {
-        public DateOnly LastPlayed { get; set; }
-        public Guid ID { get; set; }
-        public string? Name { get; set; }
-        public int Players { get; set; }
+        public DateOnly LastPlayed { get; init; }
+        public Guid ID { get; init; }
+        public string? Name { get; init; }
+        public List<Player> Players { get; init; } = [];
+    }
+    public class Player
+    {
+        public Guid ID { get; init; }
+        public required string Name { get; init; }
+        public override bool Equals(object? obj)
+        {
+            if (obj is not Player player)
+            {
+                return false;
+            }
+            return player.ID.Equals(ID);
+        }
+        public override int GetHashCode()
+        {
+            return ID.GetHashCode();
+        }
+    }
+    InputText inputText;
+    private void OnInputEvent(ChangeEventArgs e)
+    {
+        GameName = e.Value as string ?? string.Empty;
+        Logger.LogError(GameName);
     }
 }
