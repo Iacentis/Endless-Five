@@ -11,10 +11,8 @@ Players take turns sequentially, and markers can only be placed adjacent to othe
 When one player gets five markers in a row (horizontally, vertically or diagonally), they win.
 
 ### Requirements
-Different player markers should be easily differentiable (shape and/or color).
-Should there be a time limit?
-should there be an indicator for legal moves?
-Round tracker?
-Playing field needs to be scrollable.
-
-
+- Different player markers should be easily differentiable (shape and/or color).
+- Should there be a time limit?
+- Should there be an indicator for legal moves?
+- Round tracker?
+- Playing field needs to be scrollable.
