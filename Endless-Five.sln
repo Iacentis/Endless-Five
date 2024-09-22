@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Client", "Client\Client.csp
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Server", "Server\Server.csproj", "{72CAEDAC-5D15-4F28-B21D-5AF6518CE7DE}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "GameServer", "GameServer\GameServer.csproj", "{7258A465-A872-434B-AE44-84BD0E46461D}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{72CAEDAC-5D15-4F28-B21D-5AF6518CE7DE}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{72CAEDAC-5D15-4F28-B21D-5AF6518CE7DE}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{72CAEDAC-5D15-4F28-B21D-5AF6518CE7DE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7258A465-A872-434B-AE44-84BD0E46461D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7258A465-A872-434B-AE44-84BD0E46461D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7258A465-A872-434B-AE44-84BD0E46461D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7258A465-A872-434B-AE44-84BD0E46461D}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
