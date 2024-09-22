@@ -32,4 +32,18 @@ jobs:
       - name: Restore
         run: dotnet restore Client/Client.csproj
       - name: Build
-        run: dotnet build Client/Client.csproj --no-restore
+        run: dotnet publish Client/Client.csproj --no-restore
+  
+  build-server:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup dotnet ${{ matrix.dotnet-version }}
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+      - name: Restore
+        run: dotnet restore Server/Server.csproj
+      - name: Build
+        run: dotnet publish Server/Server.csproj --no-restore
