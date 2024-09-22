@@ -69,7 +69,7 @@ public class EndlessFiveGameService(ILogger<EndlessFiveGameService> logger) : Ga
     {
         var current = Players.FirstOrDefault(x => x.Host == ActivePlayer);
         var nextIndex = (Players.IndexOf(current) + 1) % Players.Count;
-        if (nextIndex == 0) { GameState.Turn++}
+        if (nextIndex == 0) { GameState.Turn++; }
         ActivePlayer = Players[nextIndex].Host;
     }
 
