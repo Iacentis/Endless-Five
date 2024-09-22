@@ -16,3 +16,7 @@ When one player gets five markers in a row (horizontally, vertically or diagonal
 - Should there be an indicator for legal moves?
 - Round tracker?
 - Playing field needs to be scrollable.
+
+### To Run
+Open up a terminal, navigate to /server and execute ```dotnet run```. This will open the server in localhost:5093
+In a different terminal, or your IDE of choice, navigate to /client and execute ```dotnet run```. This will open up the blazor app.
