@@ -16,6 +16,3 @@ When one player gets five markers in a row (horizontally, vertically or diagonal
 - Should there be an indicator for legal moves?
 - Round tracker?
 - Playing field needs to be scrollable.
-
-
-
