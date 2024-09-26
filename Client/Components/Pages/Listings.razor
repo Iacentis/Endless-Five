@@ -24,6 +24,9 @@ else
                 <th>ID</th>
                 <th>Players</th>
                 <th>Last Played</th>
+                <th>URL</th>
+                <th></th>
+                <th></th>
                 <th></th>
             </tr>
         </thead>
@@ -35,6 +38,7 @@ else
                     <td>@game.ID</td>
                     <td>@game.Players.Count</td>
                     <td>@game.LastPlayed.ToShortDateString()</td>
+                    <td>@game.url</td>
                     <td>
                         <button @onclick="@(() => JoinGame(game))" class="btn btn-primary">
                             Join
@@ -151,11 +155,6 @@ else
     public async Task DeleteGame(Game game)
     {
         var cts = new CancellationTokenSource(500);
-        if (me is null)
-        {
-            Logger.LogError("No player {0} exists, can't leave a game", Environment.UserName);
-            return;
-        }
         var deletePath = serverAddress + $"/games/delete/{game.ID}";
         var joinResponse = await client.DeleteAsync(deletePath, cts.Token);
         if (!joinResponse.IsSuccessStatusCode)
@@ -239,6 +238,7 @@ else
         public Guid ID { get; init; }
         public string? Name { get; init; }
         public List<Player> Players { get; init; } = [];
+        public string url {get;init;} = string.Empty;
     }
     public class Player
     {

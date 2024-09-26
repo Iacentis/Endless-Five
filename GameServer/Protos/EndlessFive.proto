@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option csharp_namespace = "Game";
+
+package EndlessFive;
+
+service EndlessFiveGame {
+  rpc Join (PlayerInfo) returns (State);
+  rpc Leave (PlayerInfo) returns (OK);
+  rpc MainLoop (stream Entry) returns (stream State);
+}
+message PlayerInfo {
+	string PlayerID = 1;
+}
+message OK {
+}
+
+message State {
+  string ActivePlayer = 1;
+  bool IsYourTurn = 2;
+  Board CurrentBoardState = 3;
+  repeated string Players = 4;
+}
+
+message Board {
+  uint32 Width = 1;
+  uint32 Height = 2;
+  uint32 Turn = 3;
+  repeated Entry Entries = 4;
+  optional Winner Winner = 5;
+}
+
+message Entry {
+  uint32 x = 1;
+  uint32 y = 2;
+  string PlayerID = 3;
+}
+message Winner {
+  string PlayerID = 1;
+  Entry LastEntry = 2;
+}

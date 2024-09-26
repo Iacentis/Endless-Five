@@ -1,4 +1,6 @@
 using Server;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using System.Text.Json.Serialization;
 
 var builder = WebApplication.CreateSlimBuilder(args);
@@ -12,7 +14,9 @@ var app = builder.Build();
 
 var games = new List<Game>();
 var players = new List<Player>();
-
+var gameServerUrl = app.Configuration.GetValue<string>("GameServerBaseUrl");
+var gameServerLocation = app.Configuration.GetValue<string>("GameServerExecutable");
+var processes = new Dictionary<Game, Process>();   
 var playerApi = app.MapGroup("/player");
 playerApi.MapGet("/", () => players);
 playerApi.MapGet("/{id}", (Guid id) =>
@@ -41,7 +45,7 @@ playerApi.MapDelete("/{id}", (Guid id) =>
 });
 
 
-
+int port = 5555;
 var gamesApi = app.MapGroup("/games");
 gamesApi.MapGet("/", () => games);
 gamesApi.MapGet("/{id}", (Guid id) =>
@@ -50,8 +54,15 @@ gamesApi.MapGet("/{id}", (Guid id) =>
         : Results.NotFound());
 gamesApi.MapPost("/create/{name}", (string name) =>
 {
-    var game = new Game(name);
+    port++;
+    var url = gameServerUrl + ":" + port;
+    var game = new Game(name, url);
+    var args = $"--urls \"{url}\"";
     games.Add(game);
+    if (File.Exists(gameServerLocation))
+    {
+        processes[game] = Process.Start(gameServerLocation, args);
+    }
     return Results.Ok(game);
 });
 gamesApi.MapDelete("/delete/{id}", (Guid id) =>
@@ -62,6 +73,10 @@ gamesApi.MapDelete("/delete/{id}", (Guid id) =>
         return Results.NotFound();
     }
     games.Remove(game);
+    if(processes.TryGetValue(game, out var result))
+    {
+        result.Kill();
+    }
     return Results.Ok(game);
 });
 gamesApi.MapDelete("/{id}", (Guid id) =>
